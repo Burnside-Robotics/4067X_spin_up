@@ -1,97 +1,72 @@
 /*----------------------------------------------------------------------------*/
 /*                                                                            */
 /*    Module:       main.cpp                                                  */
-/*    Author:       VEX                                                       */
-/*    Created:      Thu Sep 26 2019                                           */
-/*    Description:  Competition Template                                      */
+/*    Author:       Alex Cutforth                                             */
+/*    Created:      Wednesday 17 August 2022                                  */
+/*    Description:  Program for team 4067X's robot for the spin up season     */
 /*                                                                            */
 /*----------------------------------------------------------------------------*/
-
-// ---- START VEXCODE CONFIGURED DEVICES ----
-// ---- END VEXCODE CONFIGURED DEVICES ----
 
 #include "vex.h"
 
 using namespace vex;
 
-// A global instance of competition
 competition Competition;
+controller Controller;
 
-// define your global instances of motors and other devices here
+motor left_drive_front = motor(PORT1, ratio18_1, true);
+motor left_drive_back = motor(PORT11, ratio18_1);
 
-/*---------------------------------------------------------------------------*/
-/*                          Pre-Autonomous Functions                         */
-/*                                                                           */
-/*  You may want to perform some actions before the competition starts.      */
-/*  Do them in the following function.  You must return from this function   */
-/*  or the autonomous and usercontrol tasks will not be started.  This       */
-/*  function is only called once after the V5 has been powered on and        */
-/*  not every time that the robot is disabled.                               */
-/*---------------------------------------------------------------------------*/
+motor right_drive_front = motor(PORT10, ratio18_1);
+motor right_drive_back = motor(PORT20, ratio18_1, true);
 
-void pre_auton(void) {
-  // Initializing Robot Configuration. DO NOT REMOVE!
-  vexcodeInit();
+motor_group left_drive = motor_group(left_drive_front, left_drive_back);
+motor_group right_drive = motor_group(right_drive_front, right_drive_back);
 
-  // All activities that occur before the competition starts
-  // Example: clearing encoders, setting servo positions, ...
-}
+const float ACCELERATION_LIMIT = 20;
 
-/*---------------------------------------------------------------------------*/
-/*                                                                           */
-/*                              Autonomous Task                              */
-/*                                                                           */
-/*  This task is used to control your robot during the autonomous phase of   */
-/*  a VEX Competition.                                                       */
-/*                                                                           */
-/*  You must modify the code to add your own robot specific commands here.   */
-/*---------------------------------------------------------------------------*/
+float current_left_speed = 0.0;
+float current_right_speed = 0.0;
 
-void autonomous(void) {
-  // ..........................................................................
-  // Insert autonomous user code here.
-  // ..........................................................................
-}
-
-/*---------------------------------------------------------------------------*/
-/*                                                                           */
-/*                              User Control Task                            */
-/*                                                                           */
-/*  This task is used to control your robot during the user control phase of */
-/*  a VEX Competition.                                                       */
-/*                                                                           */
-/*  You must modify the code to add your own robot specific commands here.   */
-/*---------------------------------------------------------------------------*/
-
-void usercontrol(void) {
-  // User control code here, inside the loop
-  while (1) {
-    // This is the main execution loop for the user control program.
-    // Each time through the loop your program should update motor + servo
-    // values based on feedback from the joysticks.
-
-    // ........................................................................
-    // Insert user code here. This is where you use the joystick values to
-    // update your motors, etc.
-    // ........................................................................
-
-    wait(20, msec); // Sleep the task for a short amount of time to
-                    // prevent wasted resources.
+int sign(float x) {
+  if(x > 0) {
+    return 1;
+  } else if(x < 0) {
+    return -1;
+  } else {
+    return 0;
   }
 }
 
-//
-// Main will set up the competition functions and callbacks.
-//
-int main() {
-  // Set up callbacks for autonomous and driver control periods.
-  Competition.autonomous(autonomous);
-  Competition.drivercontrol(usercontrol);
+void drive_tank(int left_target, int right_target) {
+  current_left_speed += ACCELERATION_LIMIT * sign(left_target - current_left_speed);
+  current_right_speed += ACCELERATION_LIMIT * sign(right_target - current_right_speed);
 
-  // Run the pre-autonomous function.
+  left_drive.spin(fwd, current_left_speed, pct);
+  right_drive.spin(fwd, current_right_speed, pct);
+}
+ 
+void pre_auton(void) {
+  vexcodeInit();
+}
+
+void autonomous(void) {
+  
+}
+
+void user_control(void) {
+  while (true) {
+    drive_tank(Controller.Axis3.position(), Controller.Axis2.position());
+    wait(20, msec);
+  }
+}
+
+int main() {
+  Competition.autonomous(autonomous);
+  Competition.drivercontrol(user_control);
+
   pre_auton();
 
-  // Prevent main from exiting with an infinite loop.
   while (true) {
     wait(100, msec);
   }
