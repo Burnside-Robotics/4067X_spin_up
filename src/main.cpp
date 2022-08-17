@@ -18,7 +18,7 @@ motor left_drive_front = motor(PORT1, ratio18_1, true);
 motor left_drive_back = motor(PORT11, ratio18_1);
 
 motor right_drive_front = motor(PORT10, ratio18_1);
-motor right_drive_back = motor(PORT20, ratio18_1, true);
+motor right_drive_back = motor(PORT19, ratio18_1, true);
 
 motor_group left_drive = motor_group(left_drive_front, left_drive_back);
 motor_group right_drive = motor_group(right_drive_front, right_drive_back);
