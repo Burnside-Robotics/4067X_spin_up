@@ -15,3 +15,7 @@ temp.errors
 *.ini
 .d/
 .cache/
+
+# Added by cargo
+
+/target
