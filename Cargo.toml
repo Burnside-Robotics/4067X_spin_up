@@ -12,4 +12,6 @@ panic = "abort"
 panic = "abort"
 
 [dependencies]
-vex-rt = { git = "https://gitlab.com/professoralex13/vex-rt" } 
+vex-rt = "0.14.0"
+vex-rs-lib = { path = "../vex-rs-lib" }
+uom = { version = "0.33.0", default-features = false, features = ["f64", "si"] }
