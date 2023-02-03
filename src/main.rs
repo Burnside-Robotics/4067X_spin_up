@@ -1,13 +1,11 @@
 #![no_std]
 #![no_main]
+#![allow(unused_must_use)]
 
 mod auton;
+mod utils;
 
-use auton::score_discs;
 use core::fmt::Debug;
-use core::ops::AddAssign;
-use core::ops::Sub;
-use core::ops::SubAssign;
 use core::time::Duration;
 use uom::si::angle::radian;
 use uom::si::angular_velocity::revolution_per_minute;
@@ -20,64 +18,14 @@ use uom::si::length::inch;
 use uom::si::ratio::percent;
 use uom::si::ratio::ratio;
 use uom::ConstZero;
+use utils::Dampener;
 use vex_rs_lib::controller::Controller;
 use vex_rs_lib::gains;
 use vex_rs_lib::motor::Motor;
 use vex_rs_lib::pid::PidController;
 use vex_rs_lib::ratio;
 use vex_rs_lib::tank_drive::TankDrive;
-use vex_rt::adi::AdiDigitalOutput;
-use vex_rt::entry;
-use vex_rt::motor::Gearset;
-use vex_rt::peripherals::Peripherals;
-use vex_rt::prelude::println;
-use vex_rt::robot::Robot;
-use vex_rt::rtos::Context;
-use vex_rt::rtos::Loop;
-use vex_rt::rtos::Mutex;
-use vex_rt::rtos::Selectable;
-use vex_rt::select;
-
-struct Dampener<T> {
-    current_value: T,
-
-    acceleraion_limit: T,
-}
-
-impl<T: AddAssign + SubAssign + PartialOrd + Copy + Sub<Output = T>> Dampener<T> {
-    fn cycle(&mut self, target: T) -> T {
-        if target > self.current_value {
-            if target - self.current_value < self.acceleraion_limit {
-                self.current_value = target;
-            } else {
-                self.current_value += self.acceleraion_limit;
-            }
-        } else if target < self.current_value {
-            if self.current_value - target < self.acceleraion_limit {
-                self.current_value = target;
-            } else {
-                self.current_value -= self.acceleraion_limit;
-            }
-        }
-        return self.current_value;
-    }
-}
-
-struct Debouncer {
-    value: bool,
-}
-
-impl Debouncer {
-    pub fn new() -> Self {
-        Self { value: false }
-    }
-
-    pub fn test(&mut self, value: bool) -> bool {
-        let previous_value = self.value;
-        self.value = value;
-        !previous_value && value
-    }
-}
+use vex_rt::prelude::*;
 
 struct Bot {
     drive_train: TankDrive<3>,
@@ -100,6 +48,7 @@ impl Robot for Bot {
 
             indexer: Mutex::new(p.port_a.try_into().unwrap()),
             expansion: Mutex::new(p.port_b.try_into().unwrap()),
+
             drive_train: TankDrive::new(
                 [
                     Motor::new(p.port13, Gearset::SixToOne, true),
@@ -150,17 +99,9 @@ impl Robot for Bot {
             0.0,
         );
 
-        let mut left_dampener = Dampener {
-            current_value: Ratio::ZERO,
+        let mut left_dampener: Dampener<Ratio> = Dampener::new(Ratio::new::<ratio>(0.6));
 
-            acceleraion_limit: Ratio::new::<ratio>(0.6),
-        };
-
-        let mut right_dampener = Dampener {
-            current_value: Ratio::ZERO,
-
-            acceleraion_limit: Ratio::new::<ratio>(0.6),
-        };
+        let mut right_dampener: Dampener<Ratio> = Dampener::new(Ratio::new::<ratio>(0.6));
 
         // We will run a loop to check controls on the controller and
         // perform appropriate actions.
@@ -186,10 +127,10 @@ impl Robot for Bot {
             );
             if self.controller.r1().is_pressed() {
                 self.flywheel
-                    .move_voltage(ElectricPotential::new::<volt>(127.0));
+                    .move_voltage(ElectricPotential::new::<volt>(flywheel_target));
             } else {
                 self.flywheel
-                    .move_voltage(ElectricPotential::new::<volt>(0.0));
+                    .move_voltage(ElectricPotential::new::<volt>(flywheel_target));
             }
 
             if self.controller.r2().is_pressed() {
