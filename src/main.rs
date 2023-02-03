@@ -7,34 +7,33 @@ mod utils;
 
 use core::fmt::Debug;
 use core::time::Duration;
-use uom::si::angle::radian;
-use uom::si::angular_velocity::revolution_per_minute;
-use uom::si::electric_potential::volt;
-use uom::si::electric_potential::ElectricPotential;
-use uom::si::f64::Angle;
+use drive_system::DriveSystem;
+use intake_system::IntakeSystem;
+use shooter_system::ShooterSystem;
 use uom::si::f64::Length;
-use uom::si::f64::Ratio;
 use uom::si::length::inch;
-use uom::si::ratio::percent;
-use uom::si::ratio::ratio;
-use uom::ConstZero;
-use utils::Dampener;
 use vex_rs_lib::controller::Controller;
-use vex_rs_lib::gains;
-use vex_rs_lib::motor::Motor;
-use vex_rs_lib::pid::PidController;
-use vex_rs_lib::ratio;
-use vex_rs_lib::tank_drive::TankDrive;
 use vex_rt::prelude::*;
 
-struct Bot {
-    drive_train: TankDrive<3>,
-    intake: Motor,
-    flywheel: Motor,
-    controller: Controller,
+use crate::expansion_system::ExpansionSystem;
 
-    indexer: Mutex<AdiDigitalOutput>,
-    expansion: Mutex<AdiDigitalOutput>,
+pub trait DriverControlHandler {
+    fn driver_control_initialize(&mut self) {}
+    fn driver_control_cycle(&mut self, controller: &Controller);
+}
+
+mod drive_system;
+mod expansion_system;
+mod intake_system;
+mod shooter_system;
+
+pub struct Bot {
+    drive_system: Mutex<DriveSystem>,
+    intake_system: Mutex<IntakeSystem>,
+    shooter_system: Mutex<ShooterSystem>,
+    expansion_system: Mutex<ExpansionSystem>,
+
+    controller: Controller,
 }
 
 impl Robot for Bot {
@@ -42,36 +41,19 @@ impl Robot for Bot {
         println!("initialised");
 
         Bot {
+            drive_system: Mutex::new(DriveSystem::new(
+                p.port13, p.port12, p.port11, p.port17, p.port18, p.port19,
+            )),
+            intake_system: Mutex::new(IntakeSystem::new(p.port09)),
+            shooter_system: Mutex::new(ShooterSystem::new(p.port10, p.port_a)),
+
+            expansion_system: Mutex::new(ExpansionSystem::new(p.port_b)),
+
             controller: p.master_controller.into(),
-            intake: Motor::new(p.port09, Gearset::EighteenToOne, false),
-            flywheel: Motor::new(p.port10, Gearset::SixToOne, false),
-
-            indexer: Mutex::new(p.port_a.try_into().unwrap()),
-            expansion: Mutex::new(p.port_b.try_into().unwrap()),
-
-            drive_train: TankDrive::new(
-                [
-                    Motor::new(p.port13, Gearset::SixToOne, true),
-                    Motor::new(p.port12, Gearset::SixToOne, true),
-                    Motor::new(p.port11, Gearset::SixToOne, true),
-                ],
-                [
-                    Motor::new(p.port17, Gearset::SixToOne, false),
-                    Motor::new(p.port18, Gearset::SixToOne, false),
-                    Motor::new(p.port19, Gearset::SixToOne, false),
-                ],
-                ratio!(0.6),
-                Length::new::<inch>(3.25),
-                Length::new::<inch>(12.5),
-                Length::new::<inch>(12.0),
-                gains!(0.05, 0.0, 0.0),
-                gains!(0.05, 0.0, 0.0),
-                Angle::new::<radian>(0.1),
-            ),
         }
     }
 
-    fn autonomous(&'static self, ctx: Context) {
+    fn autonomous(&self, ctx: Context) {
         // score_discs(
         //     Duration::from_secs(500),
         //     &self.flywheel,
@@ -79,91 +61,28 @@ impl Robot for Bot {
         //     505.0,
         //     ctx,
         // );
-        self.drive_train
+        self.drive_system
+            .lock()
+            .drive_train
             .drive_distance(Length::new::<inch>(-20.0), ctx);
     }
 
     fn opcontrol(&'static self, ctx: Context) {
         let mut pause = Loop::new(Duration::from_millis(50));
 
-        let mut indexer_timer = Loop::new(Duration::from_millis(300));
-
-        let mut backward_drive = false;
-
-        let flywheel_target = 400.0;
-
-        let mut flywheel_speed_controller = PidController::new(
-            flywheel_target,
-            gains!(0.9, 0.6e-3, 1.0),
-            Duration::from_millis(50),
-            0.0,
-        );
-
-        let mut left_dampener: Dampener<Ratio> = Dampener::new(Ratio::new::<ratio>(0.6));
-
-        let mut right_dampener: Dampener<Ratio> = Dampener::new(Ratio::new::<ratio>(0.6));
-
-        // We will run a loop to check controls on the controller and
-        // perform appropriate actions.
         loop {
-            if self.controller.down().is_pressed() {
-                backward_drive = true;
-            } else if self.controller.b().is_pressed() {
-                backward_drive = false;
-            }
-
-            if self.controller.l1().is_pressed() {
-                self.intake.move_ratio(Ratio::new::<percent>(100.0));
-            } else if self.controller.l2().is_pressed() {
-                self.intake.move_ratio(Ratio::new::<percent>(-100.0));
-            } else {
-                self.intake.move_ratio(Ratio::ZERO);
-            }
-
-            let flywheel_target = flywheel_speed_controller.cycle(
-                self.flywheel
-                    .get_actual_velocity()
-                    .get::<revolution_per_minute>(),
-            );
-            if self.controller.r1().is_pressed() {
-                self.flywheel
-                    .move_voltage(ElectricPotential::new::<volt>(flywheel_target));
-            } else {
-                self.flywheel
-                    .move_voltage(ElectricPotential::new::<volt>(flywheel_target));
-            }
-
-            if self.controller.r2().is_pressed() {
-                if indexer_timer.select().poll().is_ok() {
-                    self.indexer.lock().write(true);
-                } else {
-                    self.indexer.lock().write(false);
-                }
-            } else {
-                self.indexer.lock().write(false);
-                // Reset to retracted
-                indexer_timer = Loop::new(Duration::from_millis(500));
-            }
-
-            if self.controller.down().is_pressed()
-                && self.controller.right().is_pressed()
-                && self.controller.y().is_pressed()
-                && self.controller.b().is_pressed()
-            {
-                self.expansion.lock().write(true);
-            }
-
-            if !backward_drive {
-                self.drive_train.drive_tank(
-                    left_dampener.cycle(self.controller.left_stick().get_y()),
-                    right_dampener.cycle(self.controller.right_stick().get_y()),
-                );
-            } else {
-                self.drive_train.drive_tank(
-                    left_dampener.cycle(-self.controller.right_stick().get_y()),
-                    right_dampener.cycle(-self.controller.left_stick().get_y()),
-                );
-            }
+            self.drive_system
+                .lock()
+                .driver_control_cycle(&self.controller);
+            self.intake_system
+                .lock()
+                .driver_control_cycle(&self.controller);
+            self.shooter_system
+                .lock()
+                .driver_control_cycle(&self.controller);
+            self.expansion_system
+                .lock()
+                .driver_control_cycle(&self.controller);
 
             select! {
                 _ = ctx.done() => break,
