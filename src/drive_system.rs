@@ -81,20 +81,17 @@ impl DriverControlHandler for DriveSystem {
             self.reversed_drive_state = false;
         }
 
-        let left_input: Ratio = controller.left_stick().get_y();
-        let right_input: Ratio = controller.right_stick().get_y();
+        let mut left_input: Ratio = controller.left_stick().get_y();
+        let mut right_input: Ratio = controller.right_stick().get_y();
 
-        // Reverse inputs when reverse drive is enabled
-        if !self.reversed_drive_state {
-            self.drive_train.drive_tank(
-                self.left_dampener.cycle(left_input),
-                self.right_dampener.cycle(right_input),
-            );
-        } else {
-            self.drive_train.drive_tank(
-                self.left_dampener.cycle(-right_input),
-                self.right_dampener.cycle(-left_input),
-            );
+        // Reverse Driver inputs if neccesary
+        if self.reversed_drive_state {
+            (left_input, right_input) = (-right_input, -left_input);
         }
+
+        self.drive_train.drive_tank(
+            self.left_dampener.cycle(left_input),
+            self.right_dampener.cycle(right_input),
+        );
     }
 }

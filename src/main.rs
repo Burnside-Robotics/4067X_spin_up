@@ -11,8 +11,7 @@ use drive_system::DriveSystem;
 use intake_system::IntakeSystem;
 use shooter_system::ShooterSystem;
 use uom::si::angle::degree;
-use uom::si::f64::{Angle, Length};
-use uom::si::length::{foot, inch};
+use uom::si::f64::Angle;
 use vex_rs_lib::controller::Controller;
 use vex_rt::prelude::*;
 
