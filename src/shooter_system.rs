@@ -10,7 +10,7 @@ use uom::lib::time::Duration;
 use vex_rs_lib::gains;
 use vex_rs_lib::{motor::Motor, pid::PidController};
 
-const LOW_SPEED: f64 = 400.0;
+const LOW_SPEED: f64 = 350.0;
 
 const INDEXER_DURATION: Duration = Duration::from_millis(500);
 
@@ -29,11 +29,11 @@ impl ShooterSystem {
             flywheel_motor: Motor::new(flywheel_motor_port, Gearset::SixToOne, false),
             indexer_solenoid: indexer_solenoid_port.try_into().unwrap(),
 
-            indexer_timer: Loop::new(INDEXER_DURATION),
+            indexer_timer: Loop::new(Duration::ZERO),
 
             low_speed_controller: PidController::new(
                 LOW_SPEED,
-                gains!(0.9, 0.6e-3, 1.0),
+                gains!(0.4, 0.0, 0.0),
                 Duration::from_millis(50),
                 0.0,
             ),
@@ -51,6 +51,8 @@ impl DriverControlHandler for ShooterSystem {
 
         // Cycle the low speed PID controller with the current known velocity
         let low_speed_target = self.low_speed_controller.cycle(current_flywheel_velocity);
+
+        println!("{low_speed_target}");
 
         // Determine the target voltage based on user input and PID targets
         let target_flywheel_voltage = if controller.r1().is_pressed() {

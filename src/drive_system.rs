@@ -30,16 +30,24 @@ impl DriveSystem {
         port_r2: SmartPort,
         port_r3: SmartPort,
     ) -> Self {
-        let left_motors = [
+        let mut left_motors = [
             Motor::new(port_l1, Gearset::SixToOne, true),
             Motor::new(port_l2, Gearset::SixToOne, true),
             Motor::new(port_l3, Gearset::SixToOne, true),
         ];
-        let right_motors = [
+        let mut right_motors = [
             Motor::new(port_r1, Gearset::SixToOne, false),
             Motor::new(port_r2, Gearset::SixToOne, false),
             Motor::new(port_r3, Gearset::SixToOne, false),
         ];
+
+        for motor in left_motors.iter_mut() {
+            motor.set_brake_mode(BrakeMode::Brake);
+        }
+
+        for motor in right_motors.iter_mut() {
+            motor.set_brake_mode(BrakeMode::Brake);
+        }
 
         Self {
             drive_train: TankDrive::new(
@@ -49,14 +57,14 @@ impl DriveSystem {
                 Length::new::<inch>(3.25),
                 Length::new::<inch>(12.5),
                 Length::new::<inch>(12.0),
-                gains!(0.05, 0.0, 0.0),
-                gains!(0.05, 0.0, 0.0),
-                Angle::new::<radian>(0.1),
+                gains!(0.05, 0.75e-4, 0.0),
+                gains!(0.11, 9.75e-4, 0.0),
+                Angle::new::<radian>(0.15),
             ),
 
             reversed_drive_state: false,
-            left_dampener: Dampener::new(ratio!(0.6)),
-            right_dampener: Dampener::new(ratio!(0.6)),
+            left_dampener: Dampener::new(ratio!(0.4)),
+            right_dampener: Dampener::new(ratio!(0.4)),
         }
     }
 }
@@ -77,16 +85,16 @@ impl DriverControlHandler for DriveSystem {
         let mut right_input: Ratio = controller.right_stick().get_y();
 
         // Reverse inputs when reverse drive is enabled
-        if self.reversed_drive_state {
-            left_input = -left_input;
-            right_input = -right_input;
+        if !self.reversed_drive_state {
+            self.drive_train.drive_tank(
+                self.left_dampener.cycle(controller.left_stick().get_y()),
+                self.right_dampener.cycle(controller.right_stick().get_y()),
+            );
+        } else {
+            self.drive_train.drive_tank(
+                self.left_dampener.cycle(-controller.right_stick().get_y()),
+                self.right_dampener.cycle(-controller.left_stick().get_y()),
+            );
         }
-
-        // We cycle the dampeners when setting the drive_train side speeds
-        // This is to set a limit on the sensitivity of the joysticks to make the robot smoother to drive, and reduce risk of motor overheating and damage from instant braking
-        self.drive_train.drive_tank(
-            self.left_dampener.cycle(left_input),
-            self.right_dampener.cycle(right_input),
-        );
     }
 }

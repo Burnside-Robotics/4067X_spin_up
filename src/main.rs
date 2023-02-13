@@ -2,7 +2,7 @@
 #![no_main]
 #![allow(unused_must_use)]
 
-mod auton;
+// mod auton;
 mod utils;
 
 use core::fmt::Debug;
@@ -10,8 +10,9 @@ use core::time::Duration;
 use drive_system::DriveSystem;
 use intake_system::IntakeSystem;
 use shooter_system::ShooterSystem;
-use uom::si::f64::Length;
-use uom::si::length::inch;
+use uom::si::angle::degree;
+use uom::si::f64::{Angle, Length};
+use uom::si::length::{foot, inch};
 use vex_rs_lib::controller::Controller;
 use vex_rt::prelude::*;
 
@@ -54,17 +55,18 @@ impl Robot for Bot {
     }
 
     fn autonomous(&self, ctx: Context) {
-        // score_discs(
-        //     Duration::from_secs(500),
-        //     &self.flywheel,
-        //     &self.indexer,
-        //     505.0,
-        //     ctx,
-        // );
+        // self.drive_system
+        //     .lock()
+        //     .drive_train
+        //     .drive_distance(Length::new::<foot>(2.0), &ctx);
+        // self.drive_system
+        //     .lock()
+        //     .drive_train
+        //     .drive_distance(Length::new::<inch>(20.0), &ctx);
         self.drive_system
             .lock()
             .drive_train
-            .drive_distance(Length::new::<inch>(-20.0), ctx);
+            .rotate_angle(Angle::new::<degree>(-90.0), &ctx);
     }
 
     fn opcontrol(&'static self, ctx: Context) {

@@ -20,9 +20,9 @@ pub struct IntakeSystem {
 
 impl IntakeSystem {
     pub fn new(intake_motor_port: SmartPort) -> Self {
-        Self {
-            intake_motor: Motor::new(intake_motor_port, Gearset::EighteenToOne, false),
-        }
+        let mut intake_motor = Motor::new(intake_motor_port, Gearset::EighteenToOne, false);
+        intake_motor.set_brake_mode(BrakeMode::Brake);
+        Self { intake_motor }
     }
 }
 
