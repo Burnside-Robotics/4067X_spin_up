@@ -3,12 +3,13 @@ use uom::si::electric_potential::volt;
 use uom::si::f64::ElectricPotential;
 use uom::ConstZero;
 use vex_rs_lib::controller::Controller;
+use vex_rs_lib::pid::VelocityController;
 use vex_rt::prelude::*;
 
 use crate::DriverControlHandler;
 use uom::lib::time::Duration;
 use vex_rs_lib::gains;
-use vex_rs_lib::{motor::Motor, pid::PidController};
+use vex_rs_lib::{motor::Motor, pid::PositionController};
 
 const LOW_SPEED: f64 = 350.0;
 
@@ -20,7 +21,7 @@ pub struct ShooterSystem {
 
     indexer_timer: Loop,
 
-    low_speed_controller: PidController,
+    low_speed_controller: VelocityController,
 }
 
 impl ShooterSystem {
@@ -31,12 +32,7 @@ impl ShooterSystem {
 
             indexer_timer: Loop::new(Duration::ZERO),
 
-            low_speed_controller: PidController::new(
-                LOW_SPEED,
-                gains!(0.4, 0.0, 0.0),
-                Duration::from_millis(50),
-                0.0,
-            ),
+            low_speed_controller: VelocityController::new(LOW_SPEED, gains!(0.4, 0.0, 0.0), 0.1),
         }
     }
 }

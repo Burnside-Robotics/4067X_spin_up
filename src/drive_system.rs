@@ -57,8 +57,8 @@ impl DriveSystem {
                 Length::new::<inch>(3.25),
                 Length::new::<inch>(12.5),
                 Length::new::<inch>(12.0),
-                gains!(0.05, 0.75e-4, 0.0),
-                gains!(0.11, 9.75e-4, 0.0),
+                gains!(0.05, 1.5e-6, 0.0),
+                gains!(0.11, 1.95e-5, 0.0),
                 Angle::new::<radian>(0.15),
             ),
 
@@ -81,19 +81,19 @@ impl DriverControlHandler for DriveSystem {
             self.reversed_drive_state = false;
         }
 
-        let mut left_input: Ratio = controller.left_stick().get_y();
-        let mut right_input: Ratio = controller.right_stick().get_y();
+        let left_input: Ratio = controller.left_stick().get_y();
+        let right_input: Ratio = controller.right_stick().get_y();
 
         // Reverse inputs when reverse drive is enabled
         if !self.reversed_drive_state {
             self.drive_train.drive_tank(
-                self.left_dampener.cycle(controller.left_stick().get_y()),
-                self.right_dampener.cycle(controller.right_stick().get_y()),
+                self.left_dampener.cycle(left_input),
+                self.right_dampener.cycle(right_input),
             );
         } else {
             self.drive_train.drive_tank(
-                self.left_dampener.cycle(-controller.right_stick().get_y()),
-                self.right_dampener.cycle(-controller.left_stick().get_y()),
+                self.left_dampener.cycle(-right_input),
+                self.right_dampener.cycle(-left_input),
             );
         }
     }
