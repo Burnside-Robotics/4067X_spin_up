@@ -32,7 +32,7 @@ impl ShooterSystem {
 
             indexer_timer: Loop::new(Duration::ZERO),
 
-            low_speed_controller: VelocityController::new(LOW_SPEED, gains!(0.4, 0.0, 0.0), 0.1),
+            low_speed_controller: VelocityController::new(LOW_SPEED, gains!(0.2, 0.0, 0.0), 0.1),
         }
     }
 }

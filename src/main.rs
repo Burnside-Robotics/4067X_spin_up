@@ -12,6 +12,8 @@ use intake_system::IntakeSystem;
 use shooter_system::ShooterSystem;
 use uom::si::angle::degree;
 use uom::si::f64::Angle;
+use uom::si::length::foot;
+use uom::si::length::Length;
 use vex_rs_lib::controller::Controller;
 use vex_rt::prelude::*;
 
