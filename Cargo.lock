@@ -551,9 +551,8 @@ checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
 
 [[package]]
 name = "slice-copy"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5e00f4662cdca2d22cf4ec4f25c287191de801031d3b08f6dcd85662c10d07a"
+version = "0.2.0"
+source = "git+https://github.com/nickmertin/slice-copy.git?branch=no-std#989ccad32c15e015ba97b86872ef9e1381944fb4"
 
 [[package]]
 name = "spin"
@@ -687,9 +686,7 @@ dependencies = [
 
 [[package]]
 name = "vex-rt"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f5926cb60e2b54f04daabbfd4807abeb503d195815dcd71f0e0bc0092919bf2"
+version = "0.13.0"
 dependencies = [
  "bindgen",
  "by_address",

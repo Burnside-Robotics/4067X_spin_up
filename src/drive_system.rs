@@ -59,7 +59,6 @@ impl DriveSystem {
                 Length::new::<inch>(12.0),
                 gains!(0.05, 15.7e-4, 0.0),
                 gains!(0.05, 8e-5, 0.0),
-                gains!(0.11, 30e-4, 0.0),
                 Angle::new::<radian>(0.15),
             ),
 

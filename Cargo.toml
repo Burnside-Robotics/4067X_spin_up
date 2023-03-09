@@ -12,6 +12,6 @@ panic = "abort"
 panic = "abort"
 
 [dependencies]
-vex-rt = "0.14.0"
+vex-rt = { path = "../vex-rt" }
 vex-rs-lib = { path = "../vex-rs-lib" }
 uom = { version = "0.33.0", default-features = false, features = ["f64", "si"] }
