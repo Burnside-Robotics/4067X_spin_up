@@ -2,14 +2,13 @@ use uom::si::angular_velocity::revolution_per_minute;
 use uom::si::electric_potential::volt;
 use uom::si::f64::ElectricPotential;
 use uom::ConstZero;
-use vex_rs_lib::controller::Controller;
 use vex_rs_lib::pid::VelocityController;
 use vex_rt::prelude::*;
 
 use crate::DriverControlHandler;
 use uom::lib::time::Duration;
 use vex_rs_lib::gains;
-use vex_rs_lib::{motor::Motor, pid::PositionController};
+use vex_rs_lib::pid::PositionController;
 
 const LOW_SPEED: f64 = 350.0;
 
@@ -38,11 +37,11 @@ impl ShooterSystem {
 }
 
 impl DriverControlHandler for ShooterSystem {
-    fn driver_control_cycle(&mut self, controller: &Controller) {
+    fn driver_control_cycle(&mut self, controller: &Controller) -> Result<(), ControllerError> {
         // Get actual velocity of flywheel motor in revolutions per minute
         let current_flywheel_velocity = self
             .flywheel_motor
-            .get_actual_velocity()
+            .get_actual_velocity()?
             .get::<revolution_per_minute>();
 
         // Cycle the low speed PID controller with the current known velocity
@@ -51,7 +50,7 @@ impl DriverControlHandler for ShooterSystem {
         println!("{low_speed_target}");
 
         // Determine the target voltage based on user input and PID targets
-        let target_flywheel_voltage = if controller.r1().is_pressed() {
+        let target_flywheel_voltage = if controller.r1.is_pressed()? {
             ElectricPotential::new::<volt>(low_speed_target)
         } else {
             ElectricPotential::ZERO
@@ -59,7 +58,7 @@ impl DriverControlHandler for ShooterSystem {
 
         self.flywheel_motor.move_voltage(target_flywheel_voltage);
 
-        if controller.r2().is_pressed() {
+        if controller.r2.is_pressed()? {
             // When r2() is pressed, check whether the indexer_timer has completed a cycle, if it has, we push the piston, else we pull it back
             if self.indexer_timer.select().poll().is_ok() {
                 self.indexer_solenoid.write(true);
@@ -71,5 +70,7 @@ impl DriverControlHandler for ShooterSystem {
             self.indexer_solenoid.write(false);
             self.indexer_timer = Loop::new(INDEXER_DURATION);
         }
+
+        Ok(())
     }
 }

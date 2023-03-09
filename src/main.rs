@@ -9,36 +9,30 @@ use core::fmt::Debug;
 use core::time::Duration;
 use drive_system::DriveSystem;
 use intake_system::IntakeSystem;
-use shooter_system::ShooterSystem;
-use uom::si::angle::degree;
-use uom::si::f64::Angle;
+// use shooter_system::ShooterSystem;
+use uom::si::electric_potential::volt;
+use uom::si::f64::Length;
 use uom::si::length::foot;
-use uom::si::length::Length;
-use vex_rs_lib::controller::Controller;
 use vex_rt::prelude::*;
-use vex_rt::vision::VisionSensor;
-use vex_rt::vision::VisionSignature;
+// use vex_rt::vision::{VisionSensor, VisionSignature};
 
 use crate::expansion_system::ExpansionSystem;
 
 pub trait DriverControlHandler {
     fn driver_control_initialize(&mut self) {}
-    fn driver_control_cycle(&mut self, controller: &Controller);
+    fn driver_control_cycle(&mut self, controller: &Controller) -> Result<(), ControllerError>;
 }
 
 mod drive_system;
 mod expansion_system;
 mod intake_system;
-mod shooter_system;
+// mod shooter_system;
 
 pub struct Bot {
     drive_system: Mutex<DriveSystem>,
     // intake_system: Mutex<IntakeSystem>,
     // shooter_system: Mutex<ShooterSystem>,
     // expansion_system: Mutex<ExpansionSystem>,
-
-    // camera: Mutex<VisionSensor>,
-    encoder: AdiEncoder,
     controller: Controller,
 }
 
@@ -54,43 +48,27 @@ impl Robot for Bot {
             // shooter_system: Mutex::new(ShooterSystem::new(p.port10, p.port_a)),
 
             // expansion_system: Mutex::new(ExpansionSystem::new(p.port_b)),
-
-            // camera: Mutex::new(p.port15.into_vision()),
-            encoder: p.port_a.into_adi_encoder(p.port_b).unwrap(),
-
             controller: p.master_controller.into(),
         }
     }
 
-    fn autonomous(&self, ctx: Context) {
-        // self.drive_system
-        //     .lock()
-        //     .drive_train
-        //     .drive_distance(Length::new::<foot>(2.0), &ctx);
-        // self.drive_system
-        //     .lock()
-        //     .drive_train
-        //     .drive_distance(Length::new::<inch>(20.0), &ctx);
-        self.drive_system
-            .lock()
-            .drive_train
-            .rotate_angle(Angle::new::<degree>(-90.0), &ctx);
-    }
+    fn autonomous(&self, ctx: Context) {}
 
     fn opcontrol(&'static self, ctx: Context) {
         let mut pause = Loop::new(Duration::from_millis(50));
 
-        let signature: VisionSignature = VisionSignature {
-            id: 1,
-            u_min: 0,
-            u_max: 10,
-            u_mean: 5,
-            v_min: 0,
-            v_max: 10,
-            v_mean: 5,
-            range: 50.0,
-            signature_type: 0,
-        };
+        // let signature: VisionSignature = VisionSignature {
+        //     id: 1,
+        //     u_min: 0,
+        //     u_max: 10,
+        //     u_mean: 5,
+        //     v_min: 0,
+        //     v_max: 10,
+        //     v_mean: 5,
+        //     range: 50.0,
+        //     signature_type: 0,
+        // };
+
         // self.camera.lock().add_signature(signature);
 
         loop {
@@ -111,7 +89,13 @@ impl Robot for Bot {
             //     .lock()
             //     .driver_control_cycle(&self.controller);
 
-            println!("{}", self.encoder.get().unwrap());
+            // println!("{}", self.camera.lock().get_object_count().unwrap());
+
+            // let objects = self.camera.lock().get_objects().unwrap();
+
+            // println!("{:?}", self.imu.lock().get_euler().unwrap_or_default());
+
+            // println!("{:?}", objects);
 
             select! {
                 _ = ctx.done() => break,

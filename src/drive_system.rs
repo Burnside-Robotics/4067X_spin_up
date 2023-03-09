@@ -1,9 +1,9 @@
 use crate::{utils::Dampener, DriverControlHandler};
-use uom::si::angle::radian;
+use uom::si::angle::{degree, radian};
+use uom::si::angular_velocity::{revolution_per_minute, AngularVelocity};
 use uom::si::f64::{Angle, Length, Ratio};
 use uom::si::length::inch;
 use vex_rs_lib::tank_drive::TankDrive;
-use vex_rs_lib::{controller::Controller, motor::Motor};
 use vex_rs_lib::{gains, ratio};
 use vex_rt::prelude::*;
 
@@ -31,14 +31,14 @@ impl DriveSystem {
         port_r3: SmartPort,
     ) -> Self {
         let mut left_motors = [
-            Motor::new(port_l1, Gearset::SixToOne, true),
-            Motor::new(port_l2, Gearset::SixToOne, true),
-            Motor::new(port_l3, Gearset::SixToOne, true),
+            port_l1.into_motor(Gearset::SixToOne, EncoderUnits::Degrees, true),
+            port_l2.into_motor(Gearset::SixToOne, EncoderUnits::Degrees, true),
+            port_l3.into_motor(Gearset::SixToOne, EncoderUnits::Degrees, true),
         ];
         let mut right_motors = [
-            Motor::new(port_r1, Gearset::SixToOne, false),
-            Motor::new(port_r2, Gearset::SixToOne, false),
-            Motor::new(port_r3, Gearset::SixToOne, false),
+            port_r1.into_motor(Gearset::SixToOne, EncoderUnits::Degrees, false),
+            port_r2.into_motor(Gearset::SixToOne, EncoderUnits::Degrees, false),
+            port_r3.into_motor(Gearset::SixToOne, EncoderUnits::Degrees, false),
         ];
 
         for motor in left_motors.iter_mut() {
@@ -50,17 +50,19 @@ impl DriveSystem {
         }
 
         Self {
-            drive_train: TankDrive::new(
+            drive_train: TankDrive {
                 left_motors,
                 right_motors,
-                ratio!(0.6),
-                Length::new::<inch>(3.25),
-                Length::new::<inch>(12.5),
-                Length::new::<inch>(12.0),
-                gains!(0.05, 15.7e-4, 0.0),
-                gains!(0.05, 8e-5, 0.0),
-                Angle::new::<radian>(0.15),
-            ),
+                drive_ratio: ratio!(0.6),
+                wheel_diameter: Length::new::<inch>(3.25),
+                track_width: Length::new::<inch>(12.5),
+                distance_gains: gains!(0.05, 15.7e-4, 0.0),
+                turn_gains: gains!(0.05, 8e-5, 0.0),
+                left_velocity_gains: gains!(0.05, 8e-5, 0.0),
+                right_velocity_gains: gains!(0.05, 8e-5, 0.0),
+                position_threshold: Angle::new::<degree>(5.0),
+                velocity_threshold: AngularVelocity::new::<revolution_per_minute>(5.0),
+            },
 
             reversed_drive_state: false,
             left_dampener: Dampener::new(ratio!(0.4)),
@@ -70,19 +72,19 @@ impl DriveSystem {
 }
 
 impl DriverControlHandler for DriveSystem {
-    fn driver_control_cycle(&mut self, controller: &Controller) {
+    fn driver_control_cycle(&mut self, controller: &Controller) -> Result<(), ControllerError> {
         // Our drive train can be reversed by pressing controller rear paddle levers
         // This is to make it easy to drive when intaking, and when aiming to shoot by flipping the drive train to suit whichever current side of the robot is used for reference
 
         // Use outside paddle levers to switch drive direction
-        if controller.down().is_pressed() {
+        if controller.down.is_pressed()? {
             self.reversed_drive_state = true;
-        } else if controller.b().is_pressed() {
+        } else if controller.b.is_pressed()? {
             self.reversed_drive_state = false;
         }
 
-        let mut left_input: Ratio = controller.left_stick().get_y();
-        let mut right_input: Ratio = controller.right_stick().get_y();
+        let mut left_input: Ratio = controller.left_stick.get_y()?;
+        let mut right_input: Ratio = controller.right_stick.get_y()?;
 
         // Reverse Driver inputs if neccesary
         if self.reversed_drive_state {
@@ -93,5 +95,7 @@ impl DriverControlHandler for DriveSystem {
             self.left_dampener.cycle(left_input),
             self.right_dampener.cycle(right_input),
         );
+
+        Ok(())
     }
 }

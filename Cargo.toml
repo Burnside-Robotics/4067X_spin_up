@@ -12,6 +12,6 @@ panic = "abort"
 panic = "abort"
 
 [dependencies]
-vex-rt = { path = "../vex-rt" }
+uom = { git = "https://github.com/professoralex13/uom", default-features = false, features = ["f64", "si"] }
+vex-rt = { git = "https://gitlab.com/professoralex13/vex-rt/", branch = "uom", features = ["uom"] }
 vex-rs-lib = { path = "../vex-rs-lib" }
-uom = { version = "0.33.0", default-features = false, features = ["f64", "si"] }

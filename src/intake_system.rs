@@ -1,7 +1,6 @@
 use core::marker::PhantomData;
 
 use uom::{si::f64::Ratio, ConstZero};
-use vex_rs_lib::{controller::Controller, motor::Motor};
 use vex_rt::prelude::*;
 
 use crate::DriverControlHandler;
@@ -20,20 +19,23 @@ pub struct IntakeSystem {
 
 impl IntakeSystem {
     pub fn new(intake_motor_port: SmartPort) -> Self {
-        let mut intake_motor = Motor::new(intake_motor_port, Gearset::EighteenToOne, false);
+        let mut intake_motor =
+            intake_motor_port.into_motor(Gearset::EighteenToOne, EncoderUnits::Degrees, false);
         intake_motor.set_brake_mode(BrakeMode::Brake);
         Self { intake_motor }
     }
 }
 
 impl DriverControlHandler for IntakeSystem {
-    fn driver_control_cycle(&mut self, controller: &Controller) {
-        if controller.l1().is_pressed() {
+    fn driver_control_cycle(&mut self, controller: &Controller) -> Result<(), ControllerError> {
+        if controller.l1.is_pressed()? {
             self.intake_motor.move_ratio(INTAKE_SPEED);
-        } else if controller.l2().is_pressed() {
+        } else if controller.l2.is_pressed()? {
             self.intake_motor.move_ratio(-INTAKE_SPEED);
         } else {
             self.intake_motor.move_ratio(Ratio::ZERO);
         }
+
+        Ok(())
     }
 }
